@@ -10,6 +10,13 @@
 ;;
 
 ;; constants
+;;defining error codes and the address of the contract
+(define-constant THIS_CONTRACT (as-contract tx-sender))
+(define-constant ERR_MIN_BET_AMOUNT u100)
+(define-constant ERR_INVALID_MOVE U101)
+(define-constant ERR_GAME_NOT_FOUND u102)
+(define-constant ERR_GAME_CANNOT_BE_JOINED U103)
+(define-constant ERR_NOT_YOUR_TURN U104)
 ;;
 
 ;; data vars
