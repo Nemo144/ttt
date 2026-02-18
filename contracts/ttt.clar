@@ -131,31 +131,95 @@
             (ok game-id)
     )
 )
+
+;;define the play function
+(define-public (play (game-id uint) (move-index uint) (move uint))
+
+    (let (
+
+        ;;load the game data for the game being played, return an error if game-id is invalid
+        (original-game-data (unwrap! (map-get? games game-id) (err ERR_GAME_NOT_FOUND)))
+
+        ;;get the original board from the game data
+        (original-board (get board original-game-data))
+
+        ;;is it player one's turn
+        (is-player-one-turn (get is-player-one-turn original-game-data))
+
+        ;;get the player whose turn it currently is based on the is-player-one flag
+        (player-turn (if is-player-one-turn (get player-one original-game-data) (unwrap! (get player-two original-game-data) (err ERR_GAME_NOT_FOUND))))
+
+        ;;get the expected move based on whose turn it is
+        (expected-move (if is-player-one-turn u1 u2))
+
+        ;;update the game-board by placing the player's move at the specified index
+        (game-board (unwrap! (replace-at? original-board move-index move) (err ERR_INVALID_MOVE)))
+
+        ;;check if the game has been won with this modified board
+        (is-now-winner (has-won game-board))
+
+        ;;merge the game data with the updated board and marking the next turn to be player two's turn, mark the winner if the game has been won
+        (game-data (merge original-game-data {
+            board: game-board,
+            is-player-one-turn: (not is-player-one-turn),
+            winner: (if is-now-winner (some player-turn) none)
+        })) 
+      )
+
+        ;;ensure the function is being called by the right player's turn
+       (asserts! (is-eq player-turn contract-caller) (err ERR_NOT_YOUR_TURN))
+
+       ;;ensure the move being played is the correct move based on the current turn (x or o)
+       (asserts! (is-eq move expected-move) (err ERR_INVALID_MOVE))
+
+       ;;ensure that the move meets validity requirements
+       (asserts! (validate-move original-board move-index move) (err ERR_INVALID_MOVE))
+
+       ;;if the game has been won, transfer the bet amount of the two players to the winner
+       (if is-now-winner (try! (as-contract (stx-transfer? (* u2 (get bet-amount game-data)) tx-sender player-turn))) false)
+
+       ;;update the games map with new game data
+       (map-set games game-id game-data)
+
+       ;;log the action of a move being made
+       (print {action: "play", data: game-data})
+
+       ;;return the game id of the game
+       (ok game-id)
+    )
+)
 ;;
 
 ;; read only functions
+
+;;the get-game rof will return the game-id if valid for the frontend of things
+(define-read-only (get-game (game-id uint))
+    (map-get? games game-id)
+)
+
+;;get-latest-game-id will return the latest-game-id ...fot
+(define-read-only (get-latest-game-id)
+    (var-get latest-game-id)
+)
 ;;
 
 ;; private functions
 ;;helper function to validate a move
 (define-private (validate-move (board (list 9 uint)) (move-index uint) (move uint))
     (let (
-        ;;check that move being made is within the boundaries of the board
+        ;; Validate that the move is being played within range of the board
         (index-in-range (and (>= move-index u0) (< move-index u9)))
 
-        ;;check that the move being made is either x or o
-        (x-or-0 (or (is-eq move u1) (is-eq move u2)))
+        ;; Validate that the move is either an X or an O
+        (x-or-o (or (is-eq move u1) (is-eq move u2)))
 
-        ;;check that the cell the move is being played on is currently empty
+        ;; Validate that the cell the move is being played on is currently empty
         (empty-spot (is-eq (unwrap! (element-at? board move-index) false) u0))
-        )
-
-        ;;the three conditions must be true for the move to be valid
-        (and (is-eq index-in-range true) (is-eq x-or-0 true) empty-spot)
-
     )
 
-)
+    ;; All three conditions must be true for the move to be valid
+    (and (is-eq index-in-range true) (is-eq x-or-o true) empty-spot)
+))
 
 ;;return true if all three cells are not empty and have the same value (all X or all O)
 ;;return false if any of the three is empty or a different value
@@ -173,6 +237,20 @@
 
      ;;a-val must equal b-val and must also equal c-val while not being empty (non-zero)
      (and (is-eq a-val b-val) (is-eq a-val c-val) (not (is-eq a-val u0)))
+    )
+)
+
+;; Given a board, return true if any possible three-in-a-row line has been completed
+(define-private (has-won (board (list 9 uint))) 
+    (or
+        (is-line board u0 u1 u2) ;; Row 1
+        (is-line board u3 u4 u5) ;; Row 2
+        (is-line board u6 u7 u8) ;; Row 3
+        (is-line board u0 u3 u6) ;; Column 1
+        (is-line board u1 u4 u7) ;; Column 2
+        (is-line board u2 u5 u8) ;; Column 3
+        (is-line board u0 u4 u8) ;; Left to Right Diagonal
+        (is-line board u2 u4 u6) ;; Right to Left Diagonal
     )
 )
 ;;
