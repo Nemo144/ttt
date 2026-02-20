@@ -11,6 +11,7 @@ import {
   uintCV,
   UIntCV,
 } from "@stacks/transactions";
+import { uint } from "@stacks/transactions/dist/cl";
 
 const CONTRACT_ADDRESS = "ST3PEN3P9CDM5HNDW4VKRWY5T456AK990AZRKA5E";
 const CONTRACT_NAME = "ttt";
@@ -119,4 +120,39 @@ export async function getGame(gameId: number) {
       gameCV["winner"].type === "some" ? gameCV["winner"].value.value : null,
   };
   return game;
+}
+
+//helpers for the core functions of the clarity smart contract
+
+export async function createNewGame(
+  betAmount: number,
+  moveIndex: number,
+  move: Move,
+) {
+  const txOptions = {
+    contractAddress: CONTRACT_ADDRESS,
+    contractName: CONTRACT_NAME,
+    functionName: "create-game",
+    functionArgs: [uintCV(betAmount), uintCV(moveIndex), uintCV(move)],
+  };
+  return txOptions;
+}
+
+export async function joinGame(gameId: number, moveIndex: number, move: Move) {
+  const txOptions = {
+    contractAddress: CONTRACT_ADDRESS,
+    contractName: CONTRACT_NAME,
+    functionName: "join-game",
+    functionArgs: [uintCV(gameId), uintCV(moveIndex), uintCV(move)],
+  };
+  return txOptions;
+}
+export async function playGame(gameId: number, moveIndex: number, move: Move) {
+  const txOptions = {
+    contractAddress: CONTRACT_ADDRESS,
+    contractName: CONTRACT_NAME,
+    functionName: "play",
+    functionArgs: [uintCV(gameId), uintCV(moveIndex), uintCV(move)],
+  };
+  return txOptions;
 }
