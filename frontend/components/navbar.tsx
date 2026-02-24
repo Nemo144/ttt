@@ -5,7 +5,7 @@ import { useStacks } from "@/hooks/use-stacks";
 import { abbreviateAddress } from "@/lib/stx-utils";
 import Link from "next/link";
 
-const Navbar = () => {
+export const Navbar = () => {
   const { userdata, connectWallet, disconnectWallet } = useStacks();
   return (
     <nav className="flex w-full items-center justify-between gap-4 p-4 h-16 border-b border-gray-500">
@@ -52,5 +52,3 @@ const Navbar = () => {
     </nav>
   );
 };
-
-export default Navbar;
